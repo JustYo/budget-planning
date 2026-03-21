@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: actual-budget
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "terra-budget.labels" . | nindent 4 }}
+    app: actual-budget
+spec:
+  replicas: {{ .Values.actualBudget.replicas }}
+  selector:
+    matchLabels:
+      app: actual-budget
+  template:
+    metadata:
+      labels:
+        app: actual-budget
+    spec:
+      nodeSelector:
+        {{- toYaml .Values.actualBudget.nodeSelector | nindent 8 }}
+      containers:
+        - name: actual-budget
+          image: "{{ .Values.actualBudget.image.repository }}:{{ .Values.actualBudget.image.tag }}"
+          imagePullPolicy: {{ .Values.actualBudget.image.pullPolicy }}
+          ports:
+            - containerPort: 5006
+          volumeMounts:
+            - name: actual-data
+              mountPath: /data
+          resources:
+            {{- toYaml .Values.actualBudget.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command: ["node", "src/scripts/health-check.js"]
+            initialDelaySeconds: 20
+            periodSeconds: 60
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command: ["node", "src/scripts/health-check.js"]
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+      volumes:
+        - name: actual-data
+          persistentVolumeClaim:
+            claimName: actual-budget-data

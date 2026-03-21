@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eb-importer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "terra-budget.labels" . | nindent 4 }}
+    app: eb-importer
+spec:
+  replicas: {{ .Values.ebImporter.replicas }}
+  selector:
+    matchLabels:
+      app: eb-importer
+  template:
+    metadata:
+      labels:
+        app: eb-importer
+    spec:
+      nodeSelector:
+        {{- toYaml .Values.ebImporter.nodeSelector | nindent 8 }}
+      containers:
+        - name: eb-importer
+          image: "{{ .Values.ebImporter.image.repository }}:{{ .Values.ebImporter.image.tag }}"
+          imagePullPolicy: {{ .Values.ebImporter.image.pullPolicy }}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ACTUAL_URL
+              value: {{ .Values.ebImporter.config.actualUrl | quote }}
+            - name: ACTUAL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: eb-importer
+                  key: actual-password
+            - name: ACTUAL_ACCOUNT_ID
+              value: {{ .Values.ebImporter.config.actualAccountId | quote }}
+            - name: EB_CONFIG_PATH
+              value: {{ .Values.ebImporter.config.ebConfigPath | quote }}
+            - name: EB_PEM_PATH
+              value: {{ .Values.ebImporter.config.ebPemPath | quote }}
+            - name: EB_API_ORIGIN
+              value: {{ .Values.ebImporter.config.apiOrigin | quote }}
+            - name: ASPSP_NAME
+              value: {{ .Values.ebImporter.config.aspspName | quote }}
+            - name: ASPSP_COUNTRY
+              value: {{ .Values.ebImporter.config.aspspCountry | quote }}
+            - name: DAYS_BACK
+              value: {{ .Values.ebImporter.config.daysBack | quote }}
+            - name: ACTUAL_BUDGET_PUBLIC_URL
+              value: {{ .Values.ebImporter.config.actualBudgetPublicUrl | quote }}
+          volumeMounts:
+            - name: eb-secrets
+              mountPath: /app/eb
+              readOnly: true
+          resources:
+            {{- toYaml .Values.ebImporter.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: eb-secrets
+          secret:
+            secretName: eb-importer
+            items:
+              - key: private.pem
+                path: private.pem
+              - key: config.json
+                path: config.json

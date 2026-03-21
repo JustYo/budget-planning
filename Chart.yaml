@@ -1,0 +1,6 @@
+apiVersion: v2
+name: terra-budget
+description: Actual Budget with Enable Banking bank sync (CIC)
+type: application
+version: 1.0.0
+appVersion: "latest"

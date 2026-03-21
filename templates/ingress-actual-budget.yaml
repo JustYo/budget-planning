@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: actual-budget
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "terra-budget.labels" . | nindent 4 }}
+  annotations:
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.actualBudget.certIssuer | quote }}
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+spec:
+  ingressClassName: {{ .Values.ingress.actualBudget.ingressClass }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.actualBudget.host }}
+      secretName: actual-budget-tls
+  rules:
+    - host: {{ .Values.ingress.actualBudget.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: actual-budget
+                port:
+                  number: 5006

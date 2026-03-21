@@ -1,0 +1,72 @@
+actualBudget:
+  image:
+    repository: docker.io/actualbudget/actual-server
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  nodeSelector:
+    kubernetes.io/hostname: vmi3167286
+  storage:
+    storageClass: longhorn
+    size: 5Gi
+
+ebImporter:
+  image:
+    repository: harbor.ops.quest/library/eb-importer
+    tag: latest
+    pullPolicy: Always
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  nodeSelector:
+    kubernetes.io/hostname: vmi3167286
+  config:
+    # Internal cluster URL for Actual Budget
+    actualUrl: "http://actual-budget.budget.svc.cluster.local:5006"
+    # Public URL shown in the "Open Actual Budget" button after sync
+    actualBudgetPublicUrl: "https://budget.ops.quest"
+    # Actual Budget account UUID to import transactions into
+    # Override in values.secret.yaml
+    actualAccountId: ""
+    ebConfigPath: "/app/eb/config.json"
+    ebPemPath: "/app/eb/private.pem"
+    # Enable Banking API
+    apiOrigin: "https://api.enablebanking.com"
+    aspspName: "CIC"
+    aspspCountry: "FR"
+    daysBack: 365
+
+ingress:
+  actualBudget:
+    host: budget.ops.quest
+    certIssuer: letsencrypt-prod
+    ingressClass: public
+  ebImporter:
+    host: importer.ops.quest
+    certIssuer: letsencrypt-prod
+    ingressClass: public
+    oauth2:
+      enabled: true
+      authUrl: "http://oauth2proxy-oauth2-proxy.oauth.svc.cluster.local/oauth2/auth"
+      signinUrl: "https://oauth2.ops.quest/oauth2/start"
+
+# -----------------------------------------------------------------------
+# Secrets — pass via deploy.sh (--set / --set-file), never store here.
+# -----------------------------------------------------------------------
+secrets:
+  actualPassword: ""
+  ebApplicationId: ""
+  ebRedirectUrl: "https://importer.ops.quest/auth_redirect"
+  ebPrivateKey: ""

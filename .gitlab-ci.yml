@@ -1,29 +1,20 @@
-# You can override the included template(s) by including variable overrides
-# SAST customization: https://docs.gitlab.com/user/application_security/sast/#available-cicd-variables
-# Secret Detection customization: https://docs.gitlab.com/user/application_security/secret_detection/pipeline/configure/
-# Dependency Scanning customization: https://docs.gitlab.com/user/application_security/dependency_scanning/#customizing-analyzer-behavior
-# Container Scanning customization: https://docs.gitlab.com/user/application_security/container_scanning/#customizing-analyzer-behavior
-# Note that environment variables can be set in several places
-# See https://docs.gitlab.com/ci/variables/#cicd-variable-precedence
-stages:
-- build
-- test
-- deploy
-- review
-- dast
-- staging
-- canary
-- production
-- incremental rollout 10%
-- incremental rollout 25%
-- incremental rollout 50%
-- incremental rollout 100%
-- performance
-- cleanup
-- secret-detection
-variables:
-  SECRET_DETECTION_ENABLED: 'true'
-secret_detection:
-  stage: secret-detection
 include:
-- template: Auto-DevOps.gitlab-ci.yml
+  - project: secure-templates/trivy
+    file: /trivy.gitlab-ci.yml
+  - project: secure-templates/gitleaks
+    file: /gitleaks.gitlab-ci.yml
+
+stages:
+  - container_scanning
+  - code_scanning
+  - gitleaks_scan
+  - helm_scan
+
+helm_lint:
+  stage: helm_scan
+  image: harbor.ops.quest/docker-hub-proxy/alpine/helm:3.12.0
+  script:
+    - helm lint . -f values.yaml --set "secrets.actualPassword=dummy" --set "secrets.ebApplicationId=dummy" --set "secrets.ebRedirectUrl=dummy" --set "ebImporter.config.actualAccountId=dummy" --set-file "secrets.ebPrivateKey=dummy"
+  only:
+    - merge_requests
+    - main
