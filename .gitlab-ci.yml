@@ -9,6 +9,69 @@ stages:
   - code_scanning
   - gitleaks_scan
   - helm_scan
+  - js_install
+  - js_check
+
+# ── JavaScript / TypeScript checks ─────────────────────────────────────────
+
+.js_base:
+  image: node:22-alpine
+  before_script:
+    - corepack enable
+    - corepack prepare yarn@4.10.3 --activate
+  only:
+    - merge_requests
+    - main
+
+js_install:
+  extends: .js_base
+  stage: js_install
+  script:
+    - cd actual
+    - yarn install --immutable
+  cache:
+    key:
+      files:
+        - actual/yarn.lock
+    paths:
+      - actual/.yarn/cache
+  artifacts:
+    paths:
+      - actual/node_modules/
+      - actual/packages/*/node_modules/
+    expire_in: 1 hour
+
+js_lint:
+  extends: .js_base
+  stage: js_check
+  needs: [js_install]
+  script:
+    - cd actual
+    - yarn lint
+
+js_typecheck:
+  extends: .js_base
+  stage: js_check
+  needs: [js_install]
+  script:
+    - cd actual
+    - yarn workspace @actual-app/web run typecheck
+    - yarn workspace @actual-app/sync-server run typecheck
+
+js_test:
+  extends: .js_base
+  stage: js_check
+  needs: [js_install]
+  script:
+    - cd actual
+    - yarn test
+  artifacts:
+    when: on_failure
+    paths:
+      - actual/packages/*/coverage/
+    expire_in: 7 days
+
+# ── Helm ────────────────────────────────────────────────────────────────────
 
 helm_lint:
   stage: helm_scan
