@@ -1,8 +1,8 @@
 actualBudget:
   image:
-    repository: docker.io/actualbudget/actual-server
+    repository: harbor.ops.quest/library/actual-budget
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   replicas: 1
   resources:
     requests:
@@ -16,6 +16,22 @@ actualBudget:
   storage:
     storageClass: longhorn
     size: 5Gi
+  # Enable Banking OAuth2 callback URL — must match what is registered in the
+  # Enable Banking developer portal. importer.ops.quest now routes here.
+  enableBankingRedirectUrl: "https://importer.ops.quest/eb-callback"
+  emailNotifier:
+    enabled: true
+    budgetId: "0cbe36d6-495b-43d2-a66e-4a0f21803f0b"          # Actual Budget sync ID (from Settings → Show advanced settings)
+    notifyEmail: "yoann.eusebi@hotmail.fr"       # Recipient e-mail address
+    fromEmail: "server@ops.quest"         # Sender address, e.g. "Budget <budget@ops.quest>"
+    dailyCron: "0 8 * * *"   # Every day at 08:00
+    weeklyCron: "0 9 * * 0"  # Every Sunday at 09:00
+    timezone: "Europe/Paris"
+    smtp:
+      host: "smtp.mail.ovh.net"
+      port: "465"
+      secure: "true"  # Use TLS
+      user: "server@ops.quest"             # Leave empty for unauthenticated relay
 
 ebImporter:
   image:
@@ -57,10 +73,6 @@ ingress:
     host: importer.ops.quest
     certIssuer: letsencrypt-prod
     ingressClass: public
-    oauth2:
-      enabled: true
-      authUrl: "http://oauth2proxy-oauth2-proxy.oauth.svc.cluster.local/oauth2/auth"
-      signinUrl: "https://oauth2.ops.quest/oauth2/start"
 
 # -----------------------------------------------------------------------
 # Secrets — pass via deploy.sh (--set / --set-file), never store here.
@@ -70,3 +82,4 @@ secrets:
   ebApplicationId: ""
   ebRedirectUrl: "https://importer.ops.quest/auth_redirect"
   ebPrivateKey: ""
+  smtpPassword: ""   # Only needed if emailNotifier.smtp.user is set

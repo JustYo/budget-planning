@@ -1,0 +1,11 @@
+{
+  "name": "actual-email-notifier",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@actual-app/api": "latest",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.9"
+  }
+}

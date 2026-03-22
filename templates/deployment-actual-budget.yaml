@@ -24,6 +24,49 @@ spec:
           imagePullPolicy: {{ .Values.actualBudget.image.pullPolicy }}
           ports:
             - containerPort: 5006
+          env:
+            - name: ENABLEBANKING_REDIRECT_URL
+              value: {{ .Values.actualBudget.enableBankingRedirectUrl | quote }}
+            {{- if .Values.actualBudget.emailNotifier.enabled }}
+            - name: ACTUAL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: eb-importer
+                  key: actual-password
+            - name: ACTUAL_BUDGET_ID
+              value: {{ .Values.actualBudget.emailNotifier.budgetId | quote }}
+            - name: NOTIFY_EMAIL
+              value: {{ .Values.actualBudget.emailNotifier.notifyEmail | quote }}
+            - name: FROM_EMAIL
+              value: {{ .Values.actualBudget.emailNotifier.fromEmail | quote }}
+            - name: SMTP_HOST
+              value: {{ .Values.actualBudget.emailNotifier.smtp.host | quote }}
+            - name: SMTP_PORT
+              value: {{ .Values.actualBudget.emailNotifier.smtp.port | quote }}
+            - name: SMTP_SECURE
+              value: {{ .Values.actualBudget.emailNotifier.smtp.secure | quote }}
+            {{- if .Values.actualBudget.emailNotifier.smtp.user }}
+            - name: SMTP_USER
+              value: {{ .Values.actualBudget.emailNotifier.smtp.user | quote }}
+            - name: SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: eb-importer
+                  key: smtp-password
+            {{- end }}
+            {{- if .Values.actualBudget.emailNotifier.dailyCron }}
+            - name: DAILY_CRON
+              value: {{ .Values.actualBudget.emailNotifier.dailyCron | quote }}
+            {{- end }}
+            {{- if .Values.actualBudget.emailNotifier.weeklyCron }}
+            - name: WEEKLY_CRON
+              value: {{ .Values.actualBudget.emailNotifier.weeklyCron | quote }}
+            {{- end }}
+            {{- if .Values.actualBudget.emailNotifier.timezone }}
+            - name: TZ
+              value: {{ .Values.actualBudget.emailNotifier.timezone | quote }}
+            {{- end }}
+            {{- end }}
           volumeMounts:
             - name: actual-data
               mountPath: /data
@@ -31,14 +74,14 @@ spec:
             {{- toYaml .Values.actualBudget.resources | nindent 12 }}
           livenessProbe:
             exec:
-              command: ["node", "src/scripts/health-check.js"]
+              command: ["node", "build/src/scripts/health-check.js"]
             initialDelaySeconds: 20
             periodSeconds: 60
             timeoutSeconds: 10
             failureThreshold: 3
           readinessProbe:
             exec:
-              command: ["node", "src/scripts/health-check.js"]
+              command: ["node", "build/src/scripts/health-check.js"]
             initialDelaySeconds: 20
             periodSeconds: 30
             timeoutSeconds: 10

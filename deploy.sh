@@ -34,12 +34,19 @@ if [[ ! -f "$EB_PEM_PATH" ]]; then
   exit 1
 fi
 
+EXTRA_ARGS=""
+if [ -n "${SMTP_PASSWORD:-}" ]; then
+  EXTRA_ARGS="$EXTRA_ARGS --set secrets.smtpPassword=${SMTP_PASSWORD}"
+fi
+
+# shellcheck disable=SC2086
 helm upgrade --install "$RELEASE" "$CHART_DIR" \
   --namespace "$NAMESPACE" --create-namespace \
   --set "secrets.actualPassword=${ACTUAL_PASSWORD}" \
   --set "secrets.ebApplicationId=${EB_APPLICATION_ID}" \
   --set "secrets.ebRedirectUrl=${EB_REDIRECT_URL}" \
   --set "ebImporter.config.actualAccountId=${ACTUAL_ACCOUNT_ID}" \
-  --set-file "secrets.ebPrivateKey=${EB_PEM_PATH}"
+  --set-file "secrets.ebPrivateKey=${EB_PEM_PATH}" \
+  $EXTRA_ARGS
 
 echo "Done. Verify with: kubectl get all -n ${NAMESPACE}"
