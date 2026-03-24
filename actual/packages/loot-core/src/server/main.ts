@@ -19,6 +19,7 @@ import { app as budgetFilesApp } from './budgetfiles/app';
 import { app as dashboardApp } from './dashboard/app';
 import * as db from './db';
 import * as encryption from './encryption';
+import { app as emailApp } from './email/app';
 import { app as encryptionApp } from './encryption/app';
 import { app as filtersApp } from './filters/app';
 import { app } from './main-app';
@@ -145,6 +146,7 @@ app.combine(
   syncApp,
   budgetFilesApp,
   encryptionApp,
+  emailApp,
   tagsApp,
 );
 
@@ -275,6 +277,10 @@ export async function init(config: InitConfig) {
 
   if (serverURL) {
     setServer(serverURL);
+    // Persist server-url so open-budget doesn't clear the session token.
+    // (open-budget removes user-token when server-url is absent from asyncStorage)
+    await asyncStorage.setItem('server-url', serverURL);
+    await asyncStorage.setItem('did-bootstrap', true);
 
     if ('sessionToken' in config && config.sessionToken) {
       // Session token authentication

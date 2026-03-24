@@ -12,3 +12,18 @@ spec:
   resources:
     requests:
       storage: {{ .Values.actualBudget.storage.size }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: eb-importer-data
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "terra-budget.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.actualBudget.storage.storageClass }}
+  resources:
+    requests:
+      storage: 100Mi

@@ -2,16 +2,18 @@
 set -e
 
 # Start the Actual Budget sync server
-node app.js &
+node build/app.js &
 SERVER_PID=$!
 
-# Start the email notifier (only if SMTP_HOST is configured)
-if [ -n "$SMTP_HOST" ] && [ -n "$NOTIFY_EMAIL" ] && [ -n "$ACTUAL_BUDGET_ID" ]; then
+# Start the email notifier if ACTUAL_BUDGET_ID is set.
+# SMTP settings come from /data/server-files/email-config.json (configured via the UI),
+# so we no longer check for SMTP_HOST / NOTIFY_EMAIL env vars here.
+if [ -n "$ACTUAL_BUDGET_ID" ]; then
   echo "Email notifier: starting..."
   node email-notifier/src/index.js &
   NOTIFIER_PID=$!
 else
-  echo "Email notifier: skipped (SMTP_HOST, NOTIFY_EMAIL or ACTUAL_BUDGET_ID not set)"
+  echo "Email notifier: skipped (ACTUAL_BUDGET_ID not set)"
   NOTIFIER_PID=""
 fi
 

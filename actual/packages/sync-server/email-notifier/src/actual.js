@@ -1,3 +1,5 @@
+import { mkdirSync } from 'node:fs';
+
 import * as api from '@actual-app/api';
 
 import { getConfig } from './config.js';
@@ -16,30 +18,78 @@ function addDays(dateStr, days) {
   return d.toISOString().slice(0, 10);
 }
 
+// Actual Budget stores next_date as YYYYMMDD integer; normalise to YYYY-MM-DD.
+function toIsoDate(nextDate) {
+  if (!nextDate) return null;
+  const s = String(nextDate);
+  return s.includes('-') ? s : `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+}
+
+const DATA_DIR = '/tmp/notifier-cache';
+
+async function getToken(serverUrl, password) {
+  try {
+    const res = await fetch(`${serverUrl}/email-settings/internal-token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secret: password }),
+    });
+    if (res.ok) {
+      const { token } = await res.json();
+      return token ?? null;
+    }
+  } catch {
+    // fall through
+  }
+  return null;
+}
+
 async function withBudget(fn) {
   const cfg = getConfig();
+  mkdirSync(DATA_DIR, { recursive: true });
+  const sessionToken = await getToken(cfg.serverUrl, cfg.password);
   await api.init({
     serverURL: cfg.serverUrl,
-    password: cfg.password,
-    dataDir: '/tmp/notifier-cache',
+    ...(sessionToken ? { sessionToken } : { password: cfg.password }),
+    dataDir: DATA_DIR,
   });
   try {
     await api.downloadBudget(cfg.budgetId);
-    return await fn();
+    // The @actual-app/api bundle clears user-token from asyncStorage when
+    // open-budget runs and server-url isn't stored there. Re-set it so that
+    // bank sync (which reads user-token to authenticate) works correctly.
+    if (sessionToken && api.internal) {
+      await api.internal.send('subscribe-set-token', { token: sessionToken });
+    }
+    // Read schedules BEFORE bank sync — after sync, matched transactions
+    // auto-complete the schedule and it disappears from the pending list.
+    const preSyncSchedules = await api.getSchedules();
+    let bankSyncError = null;
+    try {
+      await api.runBankSync();
+    } catch (err) {
+      console.warn('Bank sync failed:', err.message);
+      bankSyncError = err.message;
+    }
+    const data = await fn({ preSyncSchedules });
+    return { ...data, bankSyncError };
   } finally {
-    await api.shutdown();
+    try {
+      await api.shutdown();
+    } catch {
+      // ignore shutdown errors so email still sends
+    }
   }
 }
 
 export async function fetchDailyData() {
-  return withBudget(async () => {
+  return withBudget(async ({ preSyncSchedules }) => {
     const month = currentMonth();
     const today = currentDay();
     const in7days = addDays(today, 7);
 
-    const [monthData, schedules, payees] = await Promise.all([
+    const [monthData, payees] = await Promise.all([
       api.getBudgetMonth(month),
-      api.getSchedules(),
       api.getPayees(),
     ]);
 
@@ -63,17 +113,20 @@ export async function fetchDailyData() {
     }
     overspent.sort((a, b) => a.balance - b.balance);
 
-    // Upcoming schedules (next 7 days) and overdue
-    const upcoming = schedules
+    // Upcoming schedules (next 7 days) and overdue — uses pre-sync snapshot
+    // so schedules auto-matched during bank sync still appear as pending.
+    // next_date is stored as YYYYMMDD integer; normalise to YYYY-MM-DD for comparison.
+    const upcoming = preSyncSchedules
       .filter(s => !s.completed && s.next_date != null)
-      .filter(s => s.next_date <= in7days)
-      .sort((a, b) => a.next_date.localeCompare(b.next_date))
+      .map(s => ({ ...s, _isoDate: toIsoDate(s.next_date) }))
+      .filter(s => s._isoDate <= in7days)
+      .sort((a, b) => a._isoDate.localeCompare(b._isoDate))
       .map(s => ({
-        name: s.name || payeesById[s._payee]?.name || 'Unknown',
-        next_date: s.next_date,
-        amount: s._amount,
-        amountOp: s._amountOp,
-        overdue: s.next_date < today,
+        name: s.name || payeesById[s.payee]?.name || 'Unknown',
+        next_date: s._isoDate,
+        amount: s.amount,
+        amountOp: s.amountOp,
+        overdue: s._isoDate < today,
       }));
 
     let totalIncome = 0;

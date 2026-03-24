@@ -4,17 +4,30 @@ import { join } from 'node:path';
 import express from 'express';
 import nodemailer from 'nodemailer';
 
+import { loginWithPassword } from './accounts/password';
 import { config } from './load-config';
-import {
-  requestLoggerMiddleware,
-  validateSessionMiddleware,
-} from './util/middlewares';
+import { requestLoggerMiddleware } from './util/middlewares';
 
 const app = express();
 export { app as handlers };
 app.use(express.json());
 app.use(requestLoggerMiddleware);
-app.use(validateSessionMiddleware);
+
+// POST /email-settings/internal-token
+// Used by the email notifier to get a session token without going through
+// OpenID browser flow. Protected by the ACTUAL_PASSWORD env var.
+app.post('/internal-token', (req, res) => {
+  const { secret } = req.body ?? {};
+  const serverPassword = process.env.ACTUAL_PASSWORD ?? '';
+  if (!serverPassword || secret !== serverPassword) {
+    return res.status(401).json({ status: 'error', reason: 'unauthorized' });
+  }
+  const { error, token } = loginWithPassword(serverPassword);
+  if (error) {
+    return res.status(400).json({ status: 'error', reason: error });
+  }
+  res.json({ token });
+});
 
 function getConfigPath() {
   return join(config.get('serverFiles'), 'email-config.json');

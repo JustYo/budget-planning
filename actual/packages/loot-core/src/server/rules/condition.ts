@@ -277,9 +277,10 @@ export class Condition {
             const { schedule } = this.value;
             if (this.op === 'isapprox') {
               const fieldDate = parseDate(fieldValue);
+              const tolerance = this.options?.tolerance ?? 2;
               return schedule.occursBetween(
-                dateFns.subDays(fieldDate, 2),
-                dateFns.addDays(fieldDate, 2),
+                dateFns.subDays(fieldDate, tolerance),
+                dateFns.addDays(fieldDate, tolerance),
               );
             } else {
               return schedule.occursOn({ date: parseDate(fieldValue) });
@@ -288,9 +289,10 @@ export class Condition {
             const { date } = this.value;
 
             if (this.op === 'isapprox') {
+              const tolerance = this.options?.tolerance ?? 2;
               const fullDate = parseDate(date);
-              const high = addDays(fullDate, 2);
-              const low = subDays(fullDate, 2);
+              const high = addDays(fullDate, tolerance);
+              const low = subDays(fullDate, tolerance);
 
               return fieldValue >= low && fieldValue <= high;
             } else {

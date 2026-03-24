@@ -21,6 +21,7 @@ function load() {
     serverUrl: process.env.ACTUAL_SERVER_URL ?? 'http://localhost:5006',
     password: process.env.ACTUAL_PASSWORD ?? '',
     budgetId: process.env.ACTUAL_BUDGET_ID ?? '',
+    ebImporterUrl: process.env.EB_IMPORTER_URL ?? '',
 
     // SMTP & recipient — set from UI, written to JSON file
     smtpHost: file.smtpHost ?? '',

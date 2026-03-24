@@ -49,6 +49,17 @@ function header(title, subtitle) {
   </div>`;
 }
 
+function bankSyncWarning(error) {
+  if (!error) return '';
+  return `
+  <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:14px 18px;margin-bottom:16px;">
+    <p style="margin:0;font-size:13px;color:#92400e;">
+      ⚠️ <strong>Bank sync failed</strong> — transactions may be out of date.<br>
+      <span style="opacity:0.8;">Please re-link your bank account in Actual Budget (Accounts → your account → Sync).</span>
+    </p>
+  </div>`;
+}
+
 export function dailyTemplate({
   today,
   month,
@@ -57,6 +68,7 @@ export function dailyTemplate({
   totalIncome,
   totalSpent,
   toBudget,
+  bankSyncError,
 }) {
   const net = totalIncome + totalSpent; // spent is negative
 
@@ -111,6 +123,7 @@ export function dailyTemplate({
   return `<!DOCTYPE html>
 <html><body style="${baseStyle}">
   ${header('Daily Budget Digest', fmtDate(today))}
+  ${bankSyncWarning(bankSyncError)}
 
   <div style="${cardStyle}">
     <table style="width:100%;border-collapse:collapse;">
@@ -150,7 +163,6 @@ export function dailyTemplate({
 
 export function weeklyTemplate({
   month,
-  prevMonth,
   toBudget,
   totalIncome,
   prevIncome,
@@ -158,6 +170,7 @@ export function weeklyTemplate({
   prevSpent,
   groups,
   accountBalances,
+  bankSyncError,
 }) {
   const net = totalIncome + totalSpent;
   const prevNet = prevIncome + prevSpent;
@@ -213,6 +226,7 @@ export function weeklyTemplate({
   return `<!DOCTYPE html>
 <html><body style="${baseStyle}">
   ${header('Weekly Budget Summary', formattedMonth)}
+  ${bankSyncWarning(bankSyncError)}
 
   <div style="${cardStyle}">
     <h2 style="margin:0 0 14px;font-size:15px;color:#1e3a5f;">📊 Month Overview</h2>

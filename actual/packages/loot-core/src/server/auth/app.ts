@@ -13,6 +13,7 @@ export type AuthHandlers = {
   'subscribe-bootstrap': typeof bootstrap;
   'subscribe-get-login-methods': typeof getLoginMethods;
   'subscribe-get-user': typeof getUser;
+  'subscribe-get-token': typeof getToken;
   'subscribe-change-password': typeof changePassword;
   'subscribe-sign-in': typeof signIn;
   'subscribe-sign-out': typeof signOut;
@@ -28,6 +29,7 @@ app.method('subscribe-needs-bootstrap', needsBootstrap);
 app.method('subscribe-bootstrap', bootstrap);
 app.method('subscribe-get-login-methods', getLoginMethods);
 app.method('subscribe-get-user', getUser);
+app.method('subscribe-get-token', getToken);
 app.method('subscribe-change-password', changePassword);
 app.method('subscribe-sign-in', signIn);
 app.method('subscribe-sign-out', signOut);
@@ -291,6 +293,10 @@ async function signOut() {
     'readOnly',
   ]);
   return 'ok';
+}
+
+async function getToken() {
+  return asyncStorage.getItem('user-token');
 }
 
 async function setToken({ token }: { token: string }) {

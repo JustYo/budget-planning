@@ -5,11 +5,33 @@ import { getConfig } from './config.js';
 import { sendEmail } from './emailer.js';
 import { dailyTemplate, weeklyTemplate } from './templates.js';
 
+// Actual Budget's api/bank-sync handler can fire a second async rejection after
+// our try-catch has already returned (the underlying bank sync worker throws
+// asynchronously). Without this handler Node.js would crash the process even
+// though we already handled the first error. We only suppress errors that
+// originate from the bundled API — everything else is re-thrown.
+process.on('unhandledRejection', reason => {
+  const msg = reason instanceof Error ? reason.message : String(reason);
+  if (
+    msg.includes('bank-sync') ||
+    msg.includes('There was an internal error') ||
+    msg.includes('GoCardless') ||
+    msg.includes('EnableBanking') ||
+    msg.includes('SimpleFin') ||
+    msg.includes('PluggyAI')
+  ) {
+    console.warn('Suppressed async bank-sync rejection:', msg);
+    return;
+  }
+  // For anything unrelated, log and exit so real bugs are not silently swallowed.
+  console.error('Unhandled rejection:', reason);
+  process.exit(1);
+});
+
 async function runDaily() {
   const cfg = getConfig();
-  const notif = cfg.notifications.dailyDigest;
-  if (!notif.enabled || !cfg.smtpHost || !cfg.notifyEmail || !cfg.budgetId) {
-    console.log('Daily digest: skipped (disabled or not fully configured)');
+  if (!cfg.smtpHost || !cfg.notifyEmail || !cfg.budgetId) {
+    console.log('Daily digest: skipped (not fully configured)');
     return;
   }
   console.log('Running daily digest...');
@@ -29,9 +51,8 @@ async function runDaily() {
 
 async function runWeekly() {
   const cfg = getConfig();
-  const notif = cfg.notifications.weeklySummary;
-  if (!notif.enabled || !cfg.smtpHost || !cfg.notifyEmail || !cfg.budgetId) {
-    console.log('Weekly summary: skipped (disabled or not fully configured)');
+  if (!cfg.smtpHost || !cfg.notifyEmail || !cfg.budgetId) {
+    console.log('Weekly summary: skipped (not fully configured)');
     return;
   }
   console.log('Running weekly summary...');
@@ -49,19 +70,65 @@ async function runWeekly() {
   }
 }
 
-// Read cron schedules from config at startup; restart container to change schedule
-const cfg = getConfig();
-const dailyCron = cfg.notifications.dailyDigest.cron;
-const weeklyCron = cfg.notifications.weeklySummary.cron;
-const timezone = cfg.timezone;
+// Parse a simple "M H * * [D]" cron expression into { minute, hour, day }
+// day is undefined for daily schedules.
+function parseCron(expr) {
+  const parts = expr.trim().split(/\s+/);
+  return {
+    minute: parseInt(parts[0]),
+    hour: parseInt(parts[1]),
+    day: parts[4] !== '*' ? parseInt(parts[4]) : undefined,
+  };
+}
 
-console.log(`Scheduling daily digest:   ${dailyCron} (${timezone})`);
-console.log(`Scheduling weekly summary: ${weeklyCron} (${timezone})`);
+// Return { hour, minute, weekday } for the current moment in the given timezone.
+// weekday is 0 (Sun) … 6 (Sat), matching cron convention.
+function localNow(timezone) {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en', {
+    timeZone: timezone,
+    hour: 'numeric',
+    minute: 'numeric',
+    weekday: 'short',
+    hour12: false,
+  }).formatToParts(now);
 
-cron.schedule(dailyCron, runDaily, { timezone });
-cron.schedule(weeklyCron, runWeekly, { timezone });
+  const get = type => parts.find(p => p.type === type)?.value ?? '';
+  const hourRaw = parseInt(get('hour'));
+  const minute = parseInt(get('minute'));
+  // Intl hour12:false can return '24' for midnight — normalise to 0
+  const hour = hourRaw === 24 ? 0 : hourRaw;
+
+  const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const weekday = WEEKDAYS.indexOf(get('weekday'));
+
+  return { hour, minute, weekday };
+}
+
+// Run every minute. Re-reads config each tick so UI changes take effect
+// immediately without needing a container restart.
+cron.schedule('* * * * *', async () => {
+  const cfg = getConfig();
+  const { hour, minute, weekday } = localNow(cfg.timezone);
+
+  const daily = cfg.notifications.dailyDigest;
+  if (daily.enabled) {
+    const s = parseCron(daily.cron);
+    if (s.hour === hour && s.minute === minute) {
+      await runDaily();
+    }
+  }
+
+  const weekly = cfg.notifications.weeklySummary;
+  if (weekly.enabled) {
+    const s = parseCron(weekly.cron);
+    if (s.hour === hour && s.minute === minute && s.day === weekday) {
+      await runWeekly();
+    }
+  }
+});
 
 if (process.env.RUN_NOW === 'daily') void runDaily();
 if (process.env.RUN_NOW === 'weekly') void runWeekly();
 
-console.log('Email notifier running. Waiting for scheduled jobs...');
+console.log('Email notifier running. Checking schedule every minute.');

@@ -8,7 +8,7 @@ import { Text } from '@actual-app/components/text';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 
-import * as asyncStorage from 'loot-core/platform/server/asyncStorage';
+import { send } from 'loot-core/platform/client/connection';
 
 import { Setting } from './UI';
 
@@ -17,7 +17,6 @@ import {
   FormField,
   FormLabel,
 } from '@desktop-client/components/forms';
-import { useServerURL } from '@desktop-client/components/ServerContext';
 import { useSyncServerStatus } from '@desktop-client/hooks/useSyncServerStatus';
 
 type NotificationConfig = {
@@ -190,22 +189,6 @@ const NOTIFICATION_TYPES: {
   },
 ];
 
-async function apiFetch(
-  serverURL: string,
-  path: string,
-  options: RequestInit = {},
-) {
-  const token = await asyncStorage.getItem('user-token');
-  return fetch(`${serverURL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'x-actual-token': token ?? '',
-      ...(options.headers ?? {}),
-    },
-  });
-}
-
 const DEFAULT_CONFIG: EmailConfig = {
   notifyEmail: '',
   fromEmail: '',
@@ -223,7 +206,6 @@ const DEFAULT_CONFIG: EmailConfig = {
 
 export function EmailNotificationsSettings() {
   const { t } = useTranslation();
-  const serverURL = useServerURL();
   const serverStatus = useSyncServerStatus();
 
   const [config, setConfig] = useState<EmailConfig>(DEFAULT_CONFIG);
@@ -237,58 +219,46 @@ export function EmailNotificationsSettings() {
   const [testError, setTestError] = useState('');
 
   useEffect(() => {
-    if (!serverURL || serverStatus !== 'online') return;
-    apiFetch(serverURL, '/email-settings')
-      .then(r => r.json())
+    if (serverStatus !== 'online') return;
+    send('email-settings-get')
       .then(data => setConfig(data))
       .catch(_e => console.warn('Failed to load email settings', _e));
-  }, [serverURL, serverStatus]);
+  }, [serverStatus]);
 
   if (serverStatus === 'no-server' || serverStatus === 'offline') {
     return null;
   }
 
   async function onSave() {
-    if (!serverURL) return;
     setSaveStatus('saving');
     try {
-      const body: Record<string, unknown> = { ...config };
-      if (smtpPassword) body.smtpPassword = smtpPassword;
-      const res = await apiFetch(serverURL, '/email-settings', {
-        method: 'POST',
-        body: JSON.stringify(body),
+      await send('email-settings-save', {
+        ...config,
+        ...(smtpPassword ? { smtpPassword } : {}),
       });
-      if (res.ok) {
-        setSaveStatus('saved');
-        setSmtpPassword('');
-        setConfig(c => ({
-          ...c,
-          smtpPasswordSet: c.smtpPasswordSet || !!smtpPassword,
-        }));
-        setTimeout(() => setSaveStatus('idle'), 2500);
-      } else {
-        setSaveStatus('error');
-      }
+      setSaveStatus('saved');
+      setSmtpPassword('');
+      setConfig(c => ({
+        ...c,
+        smtpPasswordSet: c.smtpPasswordSet || !!smtpPassword,
+      }));
+      setTimeout(() => setSaveStatus('idle'), 2500);
     } catch {
       setSaveStatus('error');
     }
   }
 
   async function onTest() {
-    if (!serverURL) return;
     setTestStatus('sending');
     setTestError('');
     try {
-      const res = await apiFetch(serverURL, '/email-settings/test', {
-        method: 'POST',
-      });
-      const data = await res.json();
-      if (res.ok) {
+      const result = await send('email-settings-test');
+      if (result.ok) {
         setTestStatus('ok');
         setTimeout(() => setTestStatus('idle'), 3000);
       } else {
         setTestStatus('error');
-        setTestError(data.reason ?? 'Unknown error');
+        setTestError(result.error ?? 'Unknown error');
       }
     } catch (e) {
       setTestStatus('error');
@@ -606,6 +576,7 @@ export function EmailNotificationsSettings() {
           );
         })}
       </View>
+
     </Setting>
   );
 }
