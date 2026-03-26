@@ -20,9 +20,16 @@ export async function triggerBankSync() {
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
-      console.log(`Bank sync: done (${data.imported ?? '?'} transactions imported)`);
-    } else if (data.detail?.includes('expired') || data.detail?.includes('No stored session')) {
-      console.warn('Bank sync: session expired or missing — re-authenticate at /sync');
+      console.log(
+        `Bank sync: done (${data.imported ?? '?'} transactions imported)`,
+      );
+    } else if (
+      data.detail?.includes('expired') ||
+      data.detail?.includes('No stored session')
+    ) {
+      console.warn(
+        'Bank sync: session expired or missing — re-authenticate at /sync',
+      );
     } else {
       console.warn('Bank sync: failed —', data.detail ?? res.statusText);
     }

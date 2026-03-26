@@ -576,7 +576,6 @@ export function EmailNotificationsSettings() {
           );
         })}
       </View>
-
     </Setting>
   );
 }
