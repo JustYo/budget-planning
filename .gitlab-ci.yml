@@ -24,7 +24,6 @@ stages:
         - actual/yarn.lock
     paths:
       - actual/.yarn/cache
-      - actual/node_modules
   before_script:
     - corepack enable
     - corepack prepare yarn@4.10.3 --activate
