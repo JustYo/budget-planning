@@ -1,0 +1,14 @@
+# Exclude source code directories — only Helm templates belong in the chart
+actual/
+bank-sync/
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.gitlab-ci.yml
+
+# Scripts (not part of the chart)
+deploy.sh

@@ -1,0 +1,61 @@
+# ─────────────────────────────────────────────
+#  Excluded folders
+# ─────────────────────────────────────────────
+
+# Python bank sync scripts — no longer needed
+bank-sync/
+
+# ─────────────────────────────────────────────
+#  Node.js — safety net for actual/
+#  (actual/ has its own .gitignore but this
+#   ensures nothing leaks at the top level)
+# ─────────────────────────────────────────────
+node_modules/
+dist/
+build/
+lib-dist/
+.yarn/cache
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+.lage/
+**/*.tsbuildinfo
+coverage/
+playwright-report/
+test-results/
+*-snapshots/
+
+# ─────────────────────────────────────────────
+#  Secrets & credentials
+# ─────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*-credentials.json
+*-service-account.json
+
+# ─────────────────────────────────────────────
+#  Logs & temp
+# ─────────────────────────────────────────────
+*.log
+logs/
+tmp/
+temp/
+
+# ─────────────────────────────────────────────
+#  Editor & OS
+# ─────────────────────────────────────────────
+.DS_Store
+._*
+Thumbs.db
+.idea/
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# ─────────────────────────────────────────────
+#  Claude Code
+# ─────────────────────────────────────────────
+.claude/settings.local.json

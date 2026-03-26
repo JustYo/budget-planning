@@ -1,8 +1,8 @@
 actualBudget:
   image:
-    repository: docker.io/actualbudget/actual-server
+    repository: harbor.ops.quest/library/actual-budget
     tag: latest
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
   replicas: 1
   resources:
     requests:
@@ -16,6 +16,14 @@ actualBudget:
   storage:
     storageClass: longhorn
     size: 5Gi
+  # Enable Banking OAuth2 callback URL — must match what is registered in the
+  # Enable Banking developer portal. importer.ops.quest now routes here.
+  enableBankingRedirectUrl: "https://importer.ops.quest/eb-callback"
+  emailNotifier:
+    enabled: true
+    budgetId: ""  # Injected at deploy time via ACTUAL_BUDGET_ID env var — never hardcode here
+    # SMTP settings and notification schedules are configured via the Actual Budget UI
+    # (Settings → Email Notifications) and stored on the server at runtime.
 
 ebImporter:
   image:
@@ -57,10 +65,6 @@ ingress:
     host: importer.ops.quest
     certIssuer: letsencrypt-prod
     ingressClass: public
-    oauth2:
-      enabled: true
-      authUrl: "http://oauth2proxy-oauth2-proxy.oauth.svc.cluster.local/oauth2/auth"
-      signinUrl: "https://oauth2.ops.quest/oauth2/start"
 
 # -----------------------------------------------------------------------
 # Secrets — pass via deploy.sh (--set / --set-file), never store here.

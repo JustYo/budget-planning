@@ -24,6 +24,23 @@ spec:
           imagePullPolicy: {{ .Values.actualBudget.image.pullPolicy }}
           ports:
             - containerPort: 5006
+          env:
+            - name: ENABLEBANKING_REDIRECT_URL
+              value: {{ .Values.actualBudget.enableBankingRedirectUrl | quote }}
+            {{- if .Values.actualBudget.emailNotifier.enabled }}
+            # Infrastructure env vars for the email notifier process.
+            # SMTP settings and schedules are configured via the Actual Budget UI
+            # and stored in /data/server-files/email-config.json at runtime.
+            - name: ACTUAL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: eb-importer
+                  key: actual-password
+            - name: ACTUAL_BUDGET_ID
+              value: {{ .Values.actualBudget.emailNotifier.budgetId | quote }}
+            - name: EB_IMPORTER_URL
+              value: "http://eb-importer:8080"
+            {{- end }}
           volumeMounts:
             - name: actual-data
               mountPath: /data
@@ -31,14 +48,14 @@ spec:
             {{- toYaml .Values.actualBudget.resources | nindent 12 }}
           livenessProbe:
             exec:
-              command: ["node", "src/scripts/health-check.js"]
+              command: ["node", "build/src/scripts/health-check.js"]
             initialDelaySeconds: 20
             periodSeconds: 60
             timeoutSeconds: 10
             failureThreshold: 3
           readinessProbe:
             exec:
-              command: ["node", "src/scripts/health-check.js"]
+              command: ["node", "build/src/scripts/health-check.js"]
             initialDelaySeconds: 20
             periodSeconds: 30
             timeoutSeconds: 10

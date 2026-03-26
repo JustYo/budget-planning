@@ -9,12 +9,58 @@ stages:
   - code_scanning
   - gitleaks_scan
   - helm_scan
+  - js_check
+
+# ── JavaScript / TypeScript checks ─────────────────────────────────────────
+
+.js_base:
+  image: harbor.ops.quest/docker-hub-proxy/library/node:22
+  cache:
+    key:
+      files:
+        - actual/yarn.lock
+    paths:
+      - actual/.yarn/cache
+  before_script:
+    - corepack enable
+    - corepack prepare yarn@4.10.3 --activate
+    - cd actual
+    - yarn install --immutable
+  only:
+    - merge_requests
+    - main
+
+js_lint:
+  extends: .js_base
+  stage: js_check
+  script:
+    - yarn lint
+
+js_typecheck:
+  extends: .js_base
+  stage: js_check
+  script:
+    - yarn workspace @actual-app/web run typecheck
+    - yarn workspace @actual-app/sync-server run typecheck
+
+js_test:
+  extends: .js_base
+  stage: js_check
+  script:
+    - yarn test
+  artifacts:
+    when: on_failure
+    paths:
+      - actual/packages/*/coverage/
+    expire_in: 7 days
+
+# ── Helm ────────────────────────────────────────────────────────────────────
 
 helm_lint:
   stage: helm_scan
   image: harbor.ops.quest/docker-hub-proxy/alpine/helm:3.12.0
   script:
-    - helm lint . -f values.yaml --set "secrets.actualPassword=dummy" --set "secrets.ebApplicationId=dummy" --set "secrets.ebRedirectUrl=dummy" --set "ebImporter.config.actualAccountId=dummy" --set-file "secrets.ebPrivateKey=dummy"
+    - helm lint . -f values.yaml --set "secrets.actualPassword=dummy" --set "secrets.ebApplicationId=dummy" --set "secrets.ebRedirectUrl=dummy" --set "ebImporter.config.actualAccountId=dummy" --set-file "secrets.ebPrivateKey=text.txt"
   only:
     - merge_requests
     - main

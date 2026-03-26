@@ -8,14 +8,6 @@ metadata:
   annotations:
     cert-manager.io/cluster-issuer: {{ .Values.ingress.ebImporter.certIssuer | quote }}
     nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
-    {{- if .Values.ingress.ebImporter.oauth2.enabled }}
-    nginx.ingress.kubernetes.io/auth-url: {{ .Values.ingress.ebImporter.oauth2.authUrl | quote }}
-    nginx.ingress.kubernetes.io/auth-signin: "{{ .Values.ingress.ebImporter.oauth2.signinUrl }}?rd=$scheme://$best_http_host$request_uri"
-    nginx.ingress.kubernetes.io/auth-response-headers: "Authorization, X-Auth-Request-User, X-Auth-Request-Email"
-    nginx.ingress.kubernetes.io/proxy-buffer-size: "256k"
-    nginx.ingress.kubernetes.io/proxy-buffers-number: "4"
-    nginx.ingress.kubernetes.io/proxy-busy-buffers-size: "256k"
-    {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.ebImporter.ingressClass }}
   tls:
@@ -30,6 +22,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: eb-importer
+                name: actual-budget
                 port:
-                  number: 8080
+                  number: 5006

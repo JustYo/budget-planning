@@ -48,10 +48,14 @@ spec:
               value: {{ .Values.ebImporter.config.daysBack | quote }}
             - name: ACTUAL_BUDGET_PUBLIC_URL
               value: {{ .Values.ebImporter.config.actualBudgetPublicUrl | quote }}
+            - name: EB_SESSION_PATH
+              value: /app/data/session.json
           volumeMounts:
             - name: eb-secrets
               mountPath: /app/eb
               readOnly: true
+            - name: eb-data
+              mountPath: /app/data
           resources:
             {{- toYaml .Values.ebImporter.resources | nindent 12 }}
           readinessProbe:
@@ -69,3 +73,6 @@ spec:
                 path: private.pem
               - key: config.json
                 path: config.json
+        - name: eb-data
+          persistentVolumeClaim:
+            claimName: eb-importer-data
