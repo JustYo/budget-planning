@@ -18,6 +18,10 @@ stages:
 
 .js_base:
   image: harbor.ops.quest/docker-hub-proxy/library/node:22
+  variables:
+    KUBERNETES_MEMORY_REQUEST: 2Gi
+    KUBERNETES_MEMORY_LIMIT: 4Gi
+    KUBERNETES_CPU_REQUEST: "1"
   cache:
     key:
       files:
