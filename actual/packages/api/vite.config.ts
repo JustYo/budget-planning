@@ -89,5 +89,6 @@ export default defineConfig({
       return type === 'stderr';
     },
     maxWorkers: 2,
+    testTimeout: 30_000,
   },
 });

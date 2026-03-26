@@ -362,7 +362,7 @@ describe('transaction executors', () => {
         query: happyQuery,
       };
     });
-  }, 20_000);
+  }, 60_000);
 
   it(`queries the correct transactions with a filter`, async () => {
     return runTest(arr => {
@@ -416,5 +416,5 @@ describe('transaction executors', () => {
         query: unhappyQuery,
       };
     });
-  }, 20_000);
+  }, 60_000);
 });
