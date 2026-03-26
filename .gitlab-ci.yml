@@ -14,7 +14,7 @@ stages:
 # ── JavaScript / TypeScript checks ─────────────────────────────────────────
 
 .js_base:
-  image: node:22-alpine
+  image: harbor.ops.quest/docker-hub-proxy/library/node:22
   cache:
     key:
       files:
