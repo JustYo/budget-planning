@@ -45,7 +45,7 @@ WORKDIR /notifier
 COPY packages/sync-server/email-notifier/package.json .
 RUN npm install --omit=dev
 
-FROM alpine:3.22 AS prod
+FROM alpine:3.23 AS prod
 
 # Minimal runtime dependencies
 RUN apk add --no-cache nodejs tini
