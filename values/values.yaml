@@ -21,7 +21,6 @@ actualBudget:
   enableBankingRedirectUrl: "https://importer.ops.quest/eb-callback"
   emailNotifier:
     enabled: true
-    budgetId: ""  # Injected at deploy time via ACTUAL_BUDGET_ID env var — never hardcode here
     # SMTP settings and notification schedules are configured via the Actual Budget UI
     # (Settings → Email Notifications) and stored on the server at runtime.
 
@@ -45,9 +44,6 @@ ebImporter:
     actualUrl: "http://actual-budget.budget.svc.cluster.local:5006"
     # Public URL shown in the "Open Actual Budget" button after sync
     actualBudgetPublicUrl: "https://budget.ops.quest"
-    # Actual Budget account UUID to import transactions into
-    # Override in values.secret.yaml
-    actualAccountId: ""
     ebConfigPath: "/app/eb/config.json"
     ebPemPath: "/app/eb/private.pem"
     # Enable Banking API
@@ -65,12 +61,3 @@ ingress:
     host: importer.ops.quest
     certIssuer: letsencrypt-prod
     ingressClass: public
-
-# -----------------------------------------------------------------------
-# Secrets — pass via deploy.sh (--set / --set-file), never store here.
-# -----------------------------------------------------------------------
-secrets:
-  actualPassword: ""
-  ebApplicationId: ""
-  ebRedirectUrl: "https://importer.ops.quest/auth_redirect"
-  ebPrivateKey: ""

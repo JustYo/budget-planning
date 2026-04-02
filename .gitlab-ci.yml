@@ -8,11 +8,25 @@ include:
     file: /gitleaks.gitlab-ci.yml
 
 stages:
+  - validate
   - container_scanning
   - code_scanning
   - gitleaks_scan
   - helm_scan
   - js_check
+
+# ── Terraform ───────────────────────────────────────────────────────────────
+
+terraform_fmt:
+  stage: validate
+  image:
+    name: hashicorp/terraform:latest
+    entrypoint: [""]
+  script:
+    - terraform fmt -check -recursive terraform/
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
 
 # ── JavaScript / TypeScript checks ─────────────────────────────────────────
 
@@ -63,7 +77,7 @@ helm_lint:
   stage: helm_scan
   image: harbor.ops.quest/docker-hub-proxy/alpine/helm:3.12.0
   script:
-    - helm lint . -f values.yaml --set "secrets.actualPassword=dummy" --set "secrets.ebApplicationId=dummy" --set "secrets.ebRedirectUrl=dummy" --set "ebImporter.config.actualAccountId=dummy" --set-file "secrets.ebPrivateKey=text.txt"
-  only:
-    - merge_requests
-    - main
+    - helm lint . -f values/values.yaml
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'

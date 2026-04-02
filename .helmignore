@@ -12,3 +12,6 @@ bank-sync/
 
 # Scripts (not part of the chart)
 deploy.sh
+
+# Terraform
+terraform/
