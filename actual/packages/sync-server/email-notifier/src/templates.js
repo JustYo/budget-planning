@@ -27,6 +27,64 @@ function progressBar(spent, budgeted) {
     </div>`;
 }
 
+// Budget panel matching the MonthlyBudgetPanel UI component.
+// totalBudgeted: positive cents (sum of category budgets)
+// totalSpent: negative cents (sum of category spending)
+// syncedBalance: cents from bank-synced accounts only
+function budgetPanel(totalBudgeted, totalSpent, syncedBalance) {
+  const budget = totalBudgeted;
+  const spent = Math.abs(totalSpent);
+  const left = budget - spent;
+  const isOver = left < 0;
+  const pct =
+    budget > 0 ? Math.min(100, Math.round((spent / budget) * 100)) : 0;
+  const barColor = isOver ? '#ef4444' : pct >= 80 ? '#f97316' : '#3b82f6';
+  const leftColor = isOver ? '#ef4444' : '#22c55e';
+  const balanceDiff = syncedBalance - budget;
+  const hasBenefit = balanceDiff >= 0;
+
+  const leftDisplay = isOver
+    ? `<span style="font-size:11px;margin-right:4px;color:#ef4444;">Over</span>−${fmt(Math.abs(left))}`
+    : fmt(left);
+
+  return `
+  <div style="background:white;border-radius:8px;padding:20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+    <h2 style="margin:0 0 14px;font-size:15px;color:#1e3a5f;">📊 Monthly Budget</h2>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
+      <tr>
+        <td style="font-size:12px;color:#9ca3af;padding:4px 0;">Budget</td>
+        <td style="text-align:right;font-size:14px;font-weight:600;color:#374151;padding:4px 0;">${fmt(budget)}</td>
+      </tr>
+      <tr>
+        <td style="font-size:12px;color:#9ca3af;padding:4px 0;">Spent</td>
+        <td style="text-align:right;font-size:14px;font-weight:600;color:${isOver ? '#ef4444' : '#374151'};padding:4px 0;">${fmt(spent)}</td>
+      </tr>
+      <tr style="border-top:1px solid #e5e7eb;">
+        <td style="font-size:11px;color:#9ca3af;padding:8px 0 4px;">
+          ${fmt(budget)} − ${fmt(spent)} =
+        </td>
+        <td style="text-align:right;font-size:16px;font-weight:700;color:${leftColor};padding:8px 0 4px;">${leftDisplay}</td>
+      </tr>
+    </table>
+    <div style="background:#e5e7eb;border-radius:4px;height:8px;width:100%;margin-bottom:4px;">
+      <div style="background:${barColor};height:8px;border-radius:4px;width:${isOver ? 100 : pct}%;"></div>
+    </div>
+    <div style="font-size:11px;color:${isOver ? '#ef4444' : '#9ca3af'};margin-bottom:14px;">${pct}%${isOver ? ' — Over budget' : ''}</div>
+    <div style="border-top:1px solid #e5e7eb;padding-top:12px;">
+      <table style="width:100%;border-collapse:collapse;margin-bottom:8px;">
+        <tr>
+          <td style="font-size:12px;color:#9ca3af;">Bank balance</td>
+          <td style="text-align:right;font-size:14px;font-weight:600;color:#374151;">${fmt(syncedBalance)}</td>
+        </tr>
+      </table>
+      <div style="border-radius:4px;padding:8px 12px;background:${hasBenefit ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)'};display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;font-weight:600;color:${hasBenefit ? '#16a34a' : '#ef4444'};">${hasBenefit ? 'Benefit' : 'Over budget'}</span>
+        <span style="font-size:15px;font-weight:700;color:${hasBenefit ? '#16a34a' : '#ef4444'};">${hasBenefit ? `+${fmt(balanceDiff)}` : `−${fmt(Math.abs(balanceDiff))}`}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
 const baseStyle = `
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #f3f4f6;
@@ -65,13 +123,11 @@ export function dailyTemplate({
   month,
   overspent,
   upcoming,
-  totalIncome,
   totalSpent,
-  toBudget,
+  totalBudgeted,
+  syncedBalance,
   bankSyncError,
 }) {
-  const net = totalIncome + totalSpent; // spent is negative
-
   const overspentHtml =
     overspent.length === 0
       ? `<p style="color:#6b7280;margin:0;">✅ No overspent categories</p>`
@@ -112,38 +168,12 @@ export function dailyTemplate({
           )
           .join('');
 
-  const toBudgetHtml =
-    toBudget != null
-      ? `<td style="padding:10px 16px;text-align:center;border-right:1px solid #e5e7eb;">
-         <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;">To Budget</div>
-         <div style="font-size:18px;font-weight:700;color:${toBudget < 0 ? '#ef4444' : '#1e3a5f'};">${fmt(toBudget)}</div>
-       </td>`
-      : '';
-
   return `<!DOCTYPE html>
 <html><body style="${baseStyle}">
   ${header('Daily Budget Digest', fmtDate(today))}
   ${bankSyncWarning(bankSyncError)}
 
-  <div style="${cardStyle}">
-    <table style="width:100%;border-collapse:collapse;">
-      <tr>
-        ${toBudgetHtml}
-        <td style="padding:10px 16px;text-align:center;border-right:1px solid #e5e7eb;">
-          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;">Income</div>
-          <div style="font-size:18px;font-weight:700;color:#22c55e;">${fmt(totalIncome)}</div>
-        </td>
-        <td style="padding:10px 16px;text-align:center;border-right:1px solid #e5e7eb;">
-          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;">Spent</div>
-          <div style="font-size:18px;font-weight:700;color:#ef4444;">${fmt(totalSpent)}</div>
-        </td>
-        <td style="padding:10px 16px;text-align:center;">
-          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;">Net</div>
-          <div style="font-size:18px;font-weight:700;color:${net >= 0 ? '#22c55e' : '#ef4444'};">${fmt(net)}</div>
-        </td>
-      </tr>
-    </table>
-  </div>
+  ${budgetPanel(totalBudgeted, totalSpent, syncedBalance)}
 
   <div style="${cardStyle}">
     <h2 style="margin:0 0 14px;font-size:15px;color:#1e3a5f;">⚠️ Overspent Categories</h2>
@@ -163,11 +193,12 @@ export function dailyTemplate({
 
 export function weeklyTemplate({
   month,
-  toBudget,
   totalIncome,
   prevIncome,
   totalSpent,
   prevSpent,
+  totalBudgeted,
+  syncedBalance,
   groups,
   accountBalances,
   bankSyncError,
@@ -228,31 +259,22 @@ export function weeklyTemplate({
   ${header('Weekly Budget Summary', formattedMonth)}
   ${bankSyncWarning(bankSyncError)}
 
+  ${budgetPanel(totalBudgeted, totalSpent, syncedBalance)}
+
   <div style="${cardStyle}">
-    <h2 style="margin:0 0 14px;font-size:15px;color:#1e3a5f;">📊 Month Overview</h2>
+    <h2 style="margin:0 0 14px;font-size:15px;color:#1e3a5f;">💰 Income</h2>
     <table style="width:100%;border-collapse:collapse;">
       <tr>
-        ${
-          toBudget != null
-            ? `
         <td style="padding:10px 16px;text-align:center;border-right:1px solid #e5e7eb;">
-          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;">To Budget</div>
-          <div style="font-size:18px;font-weight:700;color:${toBudget < 0 ? '#ef4444' : '#1e3a5f'};">${fmt(toBudget)}</div>
-        </td>`
-            : ''
-        }
-        <td style="padding:10px 16px;text-align:center;border-right:1px solid #e5e7eb;">
-          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;">Income</div>
+          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;">This month</div>
           <div style="font-size:18px;font-weight:700;color:#22c55e;">${fmt(totalIncome)}</div>
-          ${trend(totalIncome, prevIncome)}
         </td>
         <td style="padding:10px 16px;text-align:center;border-right:1px solid #e5e7eb;">
-          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;">Spent</div>
-          <div style="font-size:18px;font-weight:700;color:#ef4444;">${fmt(totalSpent)}</div>
-          ${trend(totalSpent, prevSpent)}
+          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;">Last month</div>
+          <div style="font-size:18px;font-weight:700;color:#6b7280;">${fmt(prevIncome)}</div>
         </td>
         <td style="padding:10px 16px;text-align:center;">
-          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;">Net</div>
+          <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;">Net savings</div>
           <div style="font-size:18px;font-weight:700;color:${net >= 0 ? '#22c55e' : '#ef4444'};">${fmt(net)}</div>
           ${trend(net, prevNet)}
         </td>

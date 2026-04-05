@@ -18,6 +18,7 @@
     "experimentalDecorators": true,
     "resolveJsonModule": true,
     "downlevelIteration": true,
+    "ignoreDeprecations": "6.0",
     // TODO: enable once every file is ts
     // "strict": true,
     "strictFunctionTypes": true,

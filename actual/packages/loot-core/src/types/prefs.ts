@@ -51,7 +51,8 @@ export type SyncedPrefs = Partial<
     | `camt-swap-payee-memo-${string}`
     | `flip-amount-${string}-${'csv' | 'qif'}`
     | `flags.${FeatureFlag}`
-    | `learn-categories`,
+    | `learn-categories`
+    | 'monthlyBudgetThreshold',
     string
   >
 >;

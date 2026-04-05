@@ -37,7 +37,10 @@ spec:
                   name: eb-importer
                   key: actual-password
             - name: ACTUAL_BUDGET_ID
-              value: {{ .Values.actualBudget.emailNotifier.budgetId | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: eb-importer
+                  key: actual-budget-id
             - name: EB_IMPORTER_URL
               value: "http://eb-importer:8080"
             {{- end }}

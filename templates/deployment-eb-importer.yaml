@@ -33,7 +33,10 @@ spec:
                   name: eb-importer
                   key: actual-password
             - name: ACTUAL_ACCOUNT_ID
-              value: {{ .Values.ebImporter.config.actualAccountId | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: eb-importer
+                  key: actual-account-id
             - name: EB_CONFIG_PATH
               value: {{ .Values.ebImporter.config.ebConfigPath | quote }}
             - name: EB_PEM_PATH
