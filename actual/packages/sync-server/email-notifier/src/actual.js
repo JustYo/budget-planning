@@ -133,13 +133,37 @@ export async function fetchDailyData() {
 
     let totalIncome = 0;
     let totalSpent = 0;
+    let totalBudgeted = 0;
     for (const group of monthData.categoryGroups ?? []) {
       if (group.is_income) {
         totalIncome += group.received ?? 0;
       } else {
         totalSpent += group.spent ?? 0;
+        totalBudgeted += group.budgeted ?? 0;
       }
     }
+
+    // Synced account balance (bank-synced accounts only, matching the budget panel).
+    // api.getAccounts() strips account_sync_source from the response, so we query
+    // the accounts table directly to find which accounts have a sync source.
+    const syncedAccountRows = await api.runQuery(
+      api
+        .q('accounts')
+        .filter({
+          account_sync_source: { $ne: null },
+          offbudget: false,
+          closed: false,
+        })
+        .select('id'),
+    );
+    const syncedIds = new Set((syncedAccountRows.data ?? []).map(r => r.id));
+    const syncedBalanceValues = await Promise.all(
+      [...syncedIds].map(id => api.getAccountBalance(id)),
+    );
+    const syncedBalance = syncedBalanceValues.reduce(
+      (sum, b) => sum + (b ?? 0),
+      0,
+    );
 
     return {
       month,
@@ -148,6 +172,8 @@ export async function fetchDailyData() {
       upcoming,
       totalIncome,
       totalSpent,
+      totalBudgeted,
+      syncedBalance,
       toBudget: monthData.toBudget ?? null,
     };
   });
@@ -187,18 +213,27 @@ export async function fetchWeeklyData() {
 
     let totalIncome = 0;
     let prevIncome = 0;
+    let totalBudgeted = 0;
     for (const g of monthData.categoryGroups ?? []) {
-      if (g.is_income) totalIncome += g.received ?? 0;
+      if (g.is_income) {
+        totalIncome += g.received ?? 0;
+      } else {
+        totalBudgeted += g.budgeted ?? 0;
+      }
     }
     for (const g of prevMonthData.categoryGroups ?? []) {
       if (g.is_income) prevIncome += g.received ?? 0;
     }
 
-    const totalSpent = groups.reduce((sum, g) => sum + g.spent, 0);
+    // Use full monthData for totalSpent to match the budget panel (not filtered groups)
+    const totalSpent = (monthData.categoryGroups ?? [])
+      .filter(g => !g.is_income)
+      .reduce((sum, g) => sum + (g.spent ?? 0), 0);
     const prevSpent = (prevMonthData.categoryGroups ?? [])
       .filter(g => !g.is_income)
       .reduce((sum, g) => sum + (g.spent ?? 0), 0);
 
+    // Fetch all on-budget account balances for display
     const accountBalances = await Promise.all(
       accounts
         .filter(a => !a.closed && !a.offbudget)
@@ -206,6 +241,27 @@ export async function fetchWeeklyData() {
           name: a.name,
           balance: await api.getAccountBalance(a.id),
         })),
+    );
+
+    // Synced account balance (bank-synced only) — query directly since
+    // api.getAccounts() strips account_sync_source from its response.
+    const syncedAccountRows = await api.runQuery(
+      api
+        .q('accounts')
+        .filter({
+          account_sync_source: { $ne: null },
+          offbudget: false,
+          closed: false,
+        })
+        .select('id'),
+    );
+    const syncedIds = new Set((syncedAccountRows.data ?? []).map(r => r.id));
+    const syncedBalanceValues = await Promise.all(
+      [...syncedIds].map(id => api.getAccountBalance(id)),
+    );
+    const syncedBalance = syncedBalanceValues.reduce(
+      (sum, b) => sum + (b ?? 0),
+      0,
     );
 
     return {
@@ -216,6 +272,8 @@ export async function fetchWeeklyData() {
       prevIncome,
       totalSpent,
       prevSpent,
+      totalBudgeted,
+      syncedBalance,
       groups,
       accountBalances,
     };

@@ -53,10 +53,11 @@ COPY packages/sync-server/email-notifier/package.json .
 # version (which includes Enable Banking bank sync support, absent from npm).
 RUN npm install --omit=dev
 
-FROM node:22-alpine AS prod
+FROM alpine:3.22 AS prod
 
-# Minimal runtime dependencies (Alpine ships a patched zlib, fixing CVE-2023-45853)
-RUN apk add --no-cache tini
+# Minimal runtime dependencies — use Alpine's nodejs (receives OS security patches)
+# rather than the node:22-alpine image which bundles an unpatched Alpine base.
+RUN apk add --no-cache nodejs tini
 
 # Create a non-root user
 ARG USERNAME=actual
