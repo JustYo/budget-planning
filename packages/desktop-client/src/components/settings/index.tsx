@@ -19,7 +19,7 @@ import { Link } from '#components/common/Link';
 import { Checkbox, FormField, FormLabel } from '#components/forms';
 import { MOBILE_NAV_HEIGHT } from '#components/mobile/MobileNavTabs';
 import { Page } from '#components/Page';
-import { useServerVersion } from '#components/ServerContext';
+import { useServerURL, useServerVersion } from '#components/ServerContext';
 import { useFeatureFlag } from '#hooks/useFeatureFlag';
 import { useGlobalPref } from '#hooks/useGlobalPref';
 import { useMetadataPref } from '#hooks/useMetadataPref';
@@ -31,6 +31,7 @@ import { AuthSettings } from './AuthSettings';
 import { Backups } from './Backups';
 import { BudgetTypeSettings } from './BudgetTypeSettings';
 import { CurrencySettings } from './Currency';
+import { EmailNotifierSettings } from './EmailNotifierSettings';
 import { EncryptionSettings } from './Encryption';
 import { ExperimentalFeatures } from './Experimental';
 import { ExportBudget } from './Export';
@@ -168,6 +169,7 @@ function AdvancedAbout() {
 
 export function Settings() {
   const { t } = useTranslation();
+  const serverURL = useServerURL();
   const [floatingSidebar] = useGlobalPref('floatingSidebar');
   const [budgetName] = useMetadataPref('budgetName');
   const dispatch = useDispatch();
@@ -246,6 +248,7 @@ export function Settings() {
         <BudgetTypeSettings />
         {isElectron() && <Backups />}
         <ExportBudget />
+        {serverURL && <EmailNotifierSettings />}
         <AdvancedToggle>
           <AdvancedAbout />
           <ResetCache />
