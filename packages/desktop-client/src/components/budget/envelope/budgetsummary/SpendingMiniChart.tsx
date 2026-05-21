@@ -17,9 +17,7 @@ import {
 } from 'recharts';
 
 import { Container } from '#components/reports/Container';
-import {
-  createSpendingSpreadsheet,
-} from '#components/reports/spreadsheets/spending-spreadsheet';
+import { createSpendingSpreadsheet } from '#components/reports/spreadsheets/spending-spreadsheet';
 import { useReport } from '#components/reports/useReport';
 import { useFormat } from '#hooks/useFormat';
 import { useSyncedPref } from '#hooks/useSyncedPref';

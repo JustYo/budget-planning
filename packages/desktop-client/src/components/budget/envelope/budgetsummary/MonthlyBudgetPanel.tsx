@@ -6,18 +6,13 @@ import { Trans } from 'react-i18next';
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 
-import {
-  useEnvelopeSheetValue,
-} from '#components/budget/envelope/EnvelopeBudgetComponents';
+import { useEnvelopeSheetValue } from '#components/budget/envelope/EnvelopeBudgetComponents';
 import { FinancialText } from '#components/FinancialText';
 import { PrivacyFilter } from '#components/PrivacyFilter';
 import { useFormat } from '#hooks/useFormat';
 import { useSheetValue } from '#hooks/useSheetValue';
 import { useSyncedPref } from '#hooks/useSyncedPref';
-import {
-  envelopeBudget,
-  syncedAccountBalance,
-} from '#spreadsheet/bindings';
+import { envelopeBudget, syncedAccountBalance } from '#spreadsheet/bindings';
 
 type MonthlyBudgetPanelProps = {
   month: string;
