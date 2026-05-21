@@ -34,7 +34,11 @@ ENV NODE_OPTIONS=--max_old_space_size=8192
 # lage's task hasher invokes `git ls-tree HEAD` during initialization, so it
 # needs a git repo even when individual targets disable caching. .dockerignore
 # omits the real .git, so seed a throwaway repo with a single commit here.
-RUN git -c init.defaultBranch=master init -q \
+# Exclude node_modules and .yarn from the git index so the git object store
+# stays small — without this, `git add -A` commits 300+ MB of node_modules
+# which makes the Kaniko snapshot exceed the tar write limit.
+RUN printf 'node_modules\n.yarn\n' > .gitignore \
+    && git -c init.defaultBranch=master init -q \
     && git -c user.email=build@docker -c user.name=docker-build add -A \
     && git -c user.email=build@docker -c user.name=docker-build commit -qm build
 
