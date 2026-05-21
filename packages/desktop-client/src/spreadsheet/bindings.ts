@@ -67,6 +67,19 @@ export function onBudgetAccountBalance() {
   } satisfies Binding<'account', 'onbudget-accounts-balance'>;
 }
 
+export function syncedAccountBalance() {
+  return {
+    name: `synced-accounts-balance`,
+    query: q('transactions')
+      .filter({
+        'account.offbudget': false,
+        'account.closed': false,
+        'account.account_sync_source': { $ne: null },
+      })
+      .calculate({ $sum: '$amount' }),
+  } satisfies Binding<'account', 'synced-accounts-balance'>;
+}
+
 export function offBudgetAccountBalance() {
   return {
     name: `offbudget-accounts-balance`,

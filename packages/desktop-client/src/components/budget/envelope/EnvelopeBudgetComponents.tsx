@@ -33,7 +33,6 @@ import type { Binding, SheetFields } from '#spreadsheet';
 import { envelopeBudget } from '#spreadsheet/bindings';
 import type { CategoryGroupMonthProps, CategoryMonthProps } from '..';
 
-import { BalanceMovementMenu } from './BalanceMovementMenu';
 import { BudgetMenu } from './BudgetMenu';
 import { IncomeMenu } from './IncomeMenu';
 
@@ -75,6 +74,14 @@ const cellStyle: CSSProperties = {
 };
 
 export const BudgetTotalsMonth = memo(function BudgetTotalsMonth() {
+  const rawBudgeted =
+    (useEnvelopeSheetValue(envelopeBudget.totalBudgeted) as number) ?? 0;
+  const rawSpent =
+    (useEnvelopeSheetValue(envelopeBudget.totalSpent) as number) ?? 0;
+  const format = useFormat();
+  const left = -rawBudgeted + rawSpent; // both are negative in spreadsheet
+  const isOver = left < 0;
+
   return (
     <View
       style={{
@@ -107,16 +114,21 @@ export const BudgetTotalsMonth = memo(function BudgetTotalsMonth() {
           {props => <CellValueText {...props} style={cellStyle} />}
         </EnvelopeCellValue>
       </View>
-      <View style={headerLabelStyle}>
+      <View style={{ ...headerLabelStyle, paddingRight: 0 }}>
         <Text style={{ color: theme.tableHeaderText }}>
-          <Trans>Balance</Trans>
+          <Trans>Left</Trans>
         </Text>
-        <EnvelopeCellValue
-          binding={envelopeBudget.totalBalance}
-          type="financial"
+        <Text
+          style={{
+            ...cellStyle,
+            color: isOver
+              ? theme.budgetNumberNegative
+              : theme.budgetNumberPositive,
+            ...styles.tnum,
+          }}
         >
-          {props => <CellValueText {...props} style={cellStyle} />}
-        </EnvelopeCellValue>
+          {format(left, 'financial')}
+        </Text>
       </View>
     </View>
   );
@@ -144,6 +156,13 @@ export const ExpenseGroupMonth = memo(function ExpenseGroupMonth({
   group,
 }: CategoryGroupMonthProps) {
   const { id } = group;
+  const format = useFormat();
+  const rawBudgeted =
+    (useEnvelopeSheetValue(envelopeBudget.groupBudgeted(id)) as number) ?? 0;
+  const rawSpent =
+    (useEnvelopeSheetValue(envelopeBudget.groupSumAmount(id)) as number) ?? 0;
+  const left = rawBudgeted + rawSpent; // spent is negative
+  const isOver = left < 0;
 
   return (
     <View
@@ -175,20 +194,27 @@ export const ExpenseGroupMonth = memo(function ExpenseGroupMonth({
           type: 'financial',
         }}
       />
-      <EnvelopeSheetCell
-        name="balance"
-        width="flex"
-        textAlign="right"
+      <View
         style={{
+          flex: 1,
+          textAlign: 'right',
           fontWeight: 600,
           paddingRight: styles.monthRightPadding,
+          justifyContent: 'center',
           ...styles.tnum,
         }}
-        valueProps={{
-          binding: envelopeBudget.groupBalance(id),
-          type: 'financial',
-        }}
-      />
+      >
+        <Text
+          style={{
+            color: isOver
+              ? theme.budgetNumberNegative
+              : theme.budgetNumberPositive,
+            fontWeight: 600,
+          }}
+        >
+          {format(left, 'financial')}
+        </Text>
+      </View>
     </View>
   );
 });
@@ -205,7 +231,6 @@ export const ExpenseCategoryMonth = memo(function ExpenseCategoryMonth({
   const format = useFormat();
 
   const budgetMenuTriggerRef = useRef(null);
-  const balanceMenuTriggerRef = useRef(null);
   const {
     setMenuOpen: setBudgetMenuOpen,
     menuOpen: budgetMenuOpen,
@@ -213,13 +238,16 @@ export const ExpenseCategoryMonth = memo(function ExpenseCategoryMonth({
     resetPosition: resetBudgetPosition,
     position: budgetPosition,
   } = useContextMenu();
-  const {
-    setMenuOpen: setBalanceMenuOpen,
-    menuOpen: balanceMenuOpen,
-    handleContextMenu: handleBalanceContextMenu,
-    resetPosition: resetBalancePosition,
-    position: balancePosition,
-  } = useContextMenu();
+  const catBudgeted =
+    (useEnvelopeSheetValue(
+      envelopeBudget.catBudgeted(category.id),
+    ) as number) ?? 0;
+  const catSumAmount =
+    (useEnvelopeSheetValue(
+      envelopeBudget.catSumAmount(category.id),
+    ) as number) ?? 0;
+  const catLeft = catBudgeted + catSumAmount;
+  const isOver = catLeft < 0;
 
   const onMenuAction = (...args: Parameters<typeof onBudgetAction>) => {
     onBudgetAction(...args);
@@ -470,62 +498,24 @@ export const ExpenseCategoryMonth = memo(function ExpenseCategoryMonth({
         </View>
       </Field>
       <Field
-        ref={balanceMenuTriggerRef}
         name="balance"
         width="flex"
-        style={{ paddingRight: styles.monthRightPadding, textAlign: 'right' }}
+        style={{
+          paddingRight: styles.monthRightPadding,
+          textAlign: 'right',
+          ...styles.tnum,
+        }}
       >
-        <Button
-          variant="bare"
-          onPress={() => {
-            resetBalancePosition(-6, -4);
-            setBalanceMenuOpen(true);
-          }}
-          onContextMenu={e => {
-            handleBalanceContextMenu(e);
-            // We need to calculate differently from the hook due to being aligned to the right
-            const rect = e.currentTarget.getBoundingClientRect();
-            resetBalancePosition(
-              e.clientX - rect.right + 200 - 8,
-              e.clientY - rect.bottom - 8,
-            );
-          }}
+        <Text
           style={{
-            justifyContent: 'flex-end',
-            background: 'transparent',
-            width: '100%',
-            padding: 0,
+            color: isOver
+              ? theme.budgetNumberNegative
+              : theme.budgetNumberPositive,
+            fontWeight: 500,
           }}
         >
-          <BalanceWithCarryover
-            carryover={envelopeBudget.catCarryover(category.id)}
-            balance={envelopeBudget.catBalance(category.id)}
-            goal={envelopeBudget.catGoal(category.id)}
-            budgeted={envelopeBudget.catBudgeted(category.id)}
-            longGoal={envelopeBudget.catLongGoal(category.id)}
-            tooltipDisabled={balanceMenuOpen}
-          />
-        </Button>
-
-        <Popover
-          triggerRef={balanceMenuTriggerRef}
-          placement="bottom end"
-          isOpen={balanceMenuOpen}
-          onOpenChange={() => setBalanceMenuOpen(false)}
-          style={{
-            margin: 1,
-            minWidth: 190,
-          }}
-          isNonModal
-          {...balancePosition}
-        >
-          <BalanceMovementMenu
-            categoryId={category.id}
-            month={month}
-            onBudgetAction={onBudgetAction}
-            onClose={() => setBalanceMenuOpen(false)}
-          />
-        </Popover>
+          {format(catLeft, 'financial')}
+        </Text>
       </Field>
     </View>
   );

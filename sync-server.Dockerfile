@@ -50,6 +50,13 @@ RUN rm -rf ./node_modules/@actual-app/web ./node_modules/@actual-app/sync-server
 COPY ./packages/desktop-client/package.json ./node_modules/@actual-app/web/package.json
 RUN cp -r ./packages/desktop-client/build ./node_modules/@actual-app/web/build
 
+# Build email notifier dependencies in an isolated stage
+FROM node:22-bookworm AS email-notifier-deps
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
+WORKDIR /notifier
+COPY packages/sync-server/email-notifier/package.json .
+RUN npm install --omit=dev
+
 FROM node:22-bookworm-slim AS prod
 
 # Minimal runtime dependencies
@@ -71,6 +78,15 @@ COPY --from=builder /app/node_modules /app/node_modules
 COPY --from=builder /app/packages/sync-server/package.json ./
 COPY --from=builder /app/packages/sync-server/build ./build
 
+# Email notifier
+COPY --from=email-notifier-deps /notifier/node_modules ./email-notifier/node_modules
+COPY packages/sync-server/email-notifier/package.json ./email-notifier/
+COPY packages/sync-server/email-notifier/src ./email-notifier/src
+
+# Startup script (launches sync server + optional email notifier)
+COPY packages/sync-server/start.sh ./start.sh
+RUN chmod +x ./start.sh
+
 ENTRYPOINT ["/usr/bin/tini", "-g", "--"]
 EXPOSE 5006
-CMD ["node", "build/app.js"]
+CMD ["/app/start.sh"]

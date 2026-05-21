@@ -21,8 +21,8 @@ import { SheetNameProvider } from '#hooks/useSheetName';
 import { useUndo } from '#hooks/useUndo';
 
 import { BudgetMonthMenu } from './BudgetMonthMenu';
-import { ToBudget } from './ToBudget';
-import { TotalsList } from './TotalsList';
+import { MonthlyBudgetPanel } from './MonthlyBudgetPanel';
+import { SpendingMiniChart } from './SpendingMiniChart';
 
 type BudgetSummaryProps = {
   month: string;
@@ -47,12 +47,6 @@ export const BudgetSummary = memo(({ month }: BudgetSummaryProps) => {
   function onMenuClose() {
     setMenuOpen(false);
   }
-
-  const prevMonthName = monthUtils.format(
-    monthUtils.prevMonth(month),
-    'MMM',
-    locale,
-  );
 
   const ExpandOrCollapseIcon = collapsed
     ? SvgArrowButtonDown1
@@ -257,33 +251,21 @@ export const BudgetSummary = memo(({ month }: BudgetSummaryProps) => {
               borderTop: '1px solid ' + theme.tableBorder,
             }}
           >
-            <ToBudget
-              prevMonthName={prevMonthName}
-              month={month}
-              onBudgetAction={onBudgetAction}
-              isCollapsed
-            />
+            <MonthlyBudgetPanel month={month} isCollapsed />
           </View>
         ) : (
           <>
-            <TotalsList
-              prevMonthName={prevMonthName}
+            <SpendingMiniChart
+              month={month}
               style={{
-                padding: '5px 0',
                 marginTop: 17,
-                backgroundColor: theme.budgetHeaderCurrentMonth,
                 borderTopWidth: 1,
                 borderBottomWidth: 1,
                 borderColor: theme.tableBorder,
+                backgroundColor: theme.budgetHeaderCurrentMonth,
               }}
             />
-            <View style={{ margin: '23px 0' }}>
-              <ToBudget
-                prevMonthName={prevMonthName}
-                month={month}
-                onBudgetAction={onBudgetAction}
-              />
-            </View>
+            <MonthlyBudgetPanel month={month} style={{ margin: '8px 0' }} />
           </>
         )}
       </SheetNameProvider>
