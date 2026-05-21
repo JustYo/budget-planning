@@ -200,6 +200,7 @@ __metadata:
     ipaddr.js: "npm:^2.3.0"
     jws: "npm:^3.2.2"
     migrate: "npm:^2.1.0"
+    nodemailer: "npm:^8.0.0"
     nodemon: "npm:^3.1.14"
     openid-client: "npm:^5.7.1"
     pluggy-sdk: "npm:^0.83.0"
@@ -21703,6 +21704,13 @@ __metadata:
     util: "npm:^0.12.4"
     vm-browserify: "npm:^1.0.1"
   checksum: 10/5d5ace50868ef1a8ce9718a5fc64e4b6712f8be75bf6ab71f2eb7b5815f55f20507e427eac2fdb384e372f58891eb34089af3b55d3f9b5b60b547c8581a1c30e
+  languageName: node
+  linkType: hard
+
+"nodemailer@npm:^8.0.0":
+  version: 8.0.7
+  resolution: "nodemailer@npm:8.0.7"
+  checksum: 10/f0afea43af7f7deb55913811362b5d255e9d70c87024eb8b5161acd8a3a3c765454a52eefbfe40a5fe79ff0475b5445acafd20cb187826222b895dee15470c8f
   languageName: node
   linkType: hard
 
