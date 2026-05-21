@@ -97,10 +97,7 @@ export function SpendingMiniChart({ month, style }: SpendingMiniChartProps) {
                 tickSize={0}
               />
               <Tooltip
-                formatter={(value: number, name: string) => [
-                  format(value, 'financial'),
-                  name,
-                ]}
+                formatter={value => format(value as number, 'financial')}
                 contentStyle={{
                   backgroundColor: theme.menuBackground,
                   border: `1px solid ${theme.tableBorder}`,
