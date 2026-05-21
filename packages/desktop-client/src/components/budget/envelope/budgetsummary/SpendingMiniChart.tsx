@@ -5,6 +5,8 @@ import { Trans } from 'react-i18next';
 
 import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
+import * as monthUtils from '@actual-app/core/shared/months';
+import type { SpendingEntity } from '@actual-app/core/types/models';
 import {
   Area,
   AreaChart,
@@ -14,11 +16,10 @@ import {
   YAxis,
 } from 'recharts';
 
-import * as monthUtils from '@actual-app/core/shared/months';
-import type { SpendingEntity } from '@actual-app/core/types/models';
-
 import { Container } from '#components/reports/Container';
-import { createSpendingSpreadsheet } from '#components/reports/spreadsheets/spending-spreadsheet';
+import {
+  createSpendingSpreadsheet,
+} from '#components/reports/spreadsheets/spending-spreadsheet';
 import { useReport } from '#components/reports/useReport';
 import { useFormat } from '#hooks/useFormat';
 import { useSyncedPref } from '#hooks/useSyncedPref';
