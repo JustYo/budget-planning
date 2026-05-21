@@ -31,16 +31,6 @@ type EmailConfig = {
   notifications: Notifications;
 };
 
-const DAYS_OF_WEEK: [string, string][] = [
-  ['0', 'Sunday'],
-  ['1', 'Monday'],
-  ['2', 'Tuesday'],
-  ['3', 'Wednesday'],
-  ['4', 'Thursday'],
-  ['5', 'Friday'],
-  ['6', 'Saturday'],
-];
-
 // Parse "MM HH * * [D]" → { time: "HH:MM", day: "D" | undefined }
 function parseCron(cron: string) {
   const parts = cron.trim().split(/\s+/);
@@ -80,6 +70,16 @@ const defaultConfig: EmailConfig = {
 export function EmailNotifierSettings() {
   const { t } = useTranslation();
   const serverURL = useServerURL();
+
+  const DAYS_OF_WEEK: [string, string][] = [
+    ['0', t('Sunday')],
+    ['1', t('Monday')],
+    ['2', t('Tuesday')],
+    ['3', t('Wednesday')],
+    ['4', t('Thursday')],
+    ['5', t('Friday')],
+    ['6', t('Saturday')],
+  ];
 
   const [config, setConfig] = useState<EmailConfig>(defaultConfig);
   const [password, setPassword] = useState('');
@@ -264,7 +264,7 @@ export function EmailNotifierSettings() {
             <FormLabel title={t('Host')} />
             <Input
               value={config.smtpHost}
-              placeholder="smtp.example.com"
+              placeholder={t('smtp.example.com')}
               style={inputStyle}
               onChangeValue={v => {
                 setConfig(p => ({ ...p, smtpHost: v }));
@@ -344,7 +344,7 @@ export function EmailNotifierSettings() {
             <FormLabel title={t('From address')} />
             <Input
               value={config.fromEmail}
-              placeholder="Budget <server@example.com>"
+              placeholder={t('Budget <server@example.com>')}
               style={inputStyle}
               onChangeValue={v => {
                 setConfig(p => ({ ...p, fromEmail: v }));
@@ -357,7 +357,7 @@ export function EmailNotifierSettings() {
             <FormLabel title={t('Send notifications to')} />
             <Input
               value={config.notifyEmail}
-              placeholder="you@example.com"
+              placeholder={t('you@example.com')}
               style={inputStyle}
               onChangeValue={v => {
                 setConfig(p => ({ ...p, notifyEmail: v }));
@@ -378,7 +378,7 @@ export function EmailNotifierSettings() {
             <FormLabel title={t('Timezone')} />
             <Input
               value={config.timezone}
-              placeholder="Europe/Paris"
+              placeholder={t('Europe/Paris')}
               style={{ width: 200 }}
               onChangeValue={v => {
                 setConfig(p => ({ ...p, timezone: v }));
